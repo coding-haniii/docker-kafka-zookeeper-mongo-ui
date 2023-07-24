@@ -5,11 +5,8 @@ Multi kafka and zookeeper topics clustering to mongodb
  - @author. haeun kim
  - @date.   2023-07-14
  - @title.  Multi kafka and zookeeper topic clustering to mongodb
- - @keywords. - kafka 
-            - zookeeper     
-            - mongodb
-            - docker
-#############################################################################
+ - @keywords.  kafka / zookeeper / mongodb / docker
+
 # Summary containors and ports
 #############################################################################
 
@@ -23,7 +20,7 @@ Multi kafka and zookeeper topics clustering to mongodb
 - 5.MongoDB Replica   (3) mongo1:27015[M]     
 - 6.MongoDB Pool      (3) mongo-setup
 ---------------------------------------------------------------------------
-*TRANSACTION   .../utils/*  
+ *TRANSACTION   .../utils/*  
 - 7.CONNECT               8083
 - 8.CONTROL               9021
 - 9.REST PROXY        (1) restproxy:8082
