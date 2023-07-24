@@ -1,0 +1,14 @@
+{
+  "name": "mongo-sink",
+  "config": {
+    "connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
+    "topics": "testdb1.book",
+    "connection.uri": "mongodb://mongo1",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": false,
+    "database": "testdb1",
+    "collection": "book"
+  }
+}
+
