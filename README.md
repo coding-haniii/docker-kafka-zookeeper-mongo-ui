@@ -1,9 +1,9 @@
 # docker-kafka-zookeeper-mongo-ui
 Multi kafka and zookeeper topics clustering to mongodb
-#############################################################################
- @name.   docker-compose.yml
- @author. haeun kim
- @date.   2023-07-14
+#############################################################################<br>
+ @name.   docker-compose.yml<br>
+ @author. haeun kim<br>
+ @date.   2023-07-14<br>
  @title.  Multi kafka and zookeeper topic clustering to mongodb
  @keywords. - kafka 
             - zookeeper     
