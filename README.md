@@ -8,8 +8,6 @@ Multi kafka and zookeeper topics clustering to mongodb
  - @keywords.  kafka / zookeeper / mongodb / docker
 
 # Summary containors and ports
-#############################################################################
-
  *NODE
 - 1.ZOOKEEPER         (3) zookeeper1:2181 | zookeeper2:2182 | zookeeper3:2183
 - 2.KAFKA             (3) broker:9092  |  broker1:9091   | borker2:9092   
@@ -30,9 +28,8 @@ Multi kafka and zookeeper topics clustering to mongodb
 - 11.KAFAK TOPIC CREATE
 - 12.NETWORKS         (2) localnet:bridge
 - 13.VOLUMES
-#############################################################################
+---------------------------------------------------------------------------
 # Ref. 
-#############################################################################
 - https://github.com/confluentinc/cp-demo/blob/7.4.0-post/docker-compose.yml
 - https://github.com/mongodb/mongo-kafka/blob/master/docker/docker-compose.yml
 - https://github.com/mongodb-university/kafka-edu.git
