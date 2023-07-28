@@ -8,32 +8,44 @@ Multi kafka and zookeeper topics clustering to mongodb
  - @keywords.  kafka / zookeeper / mongodb / docker
 
 # Summary Docker containors and ports
-###### *NODE
-###### 1.ZOOKEEPER         (2) zoo1:2181 | zoo2:2182 
-###### 2.KAFKA             (2) broker1:29091  |  broker2:29092     
-###### 3.SCHEMA REGISTRY   (1) schemaregistry:8081
-###### 4.KSQL              (2) ksqlserver:8088, ksqlcli  
+### NODE
+1.ZOOKEEPER         (2) zoo1:2181 | zoo2:2182 
+2.KAFKA             (2) broker1:29091  |  broker2:29092     
+3.SCHEMA REGISTRY   (1) schemaregistry:8081
+4.KSQL              (2) ksqlserver:8088, ksqlcli  
 ---------------------------------------------------------------------------
- *DB                    ... config-replica.js
-###### 5.MongoDB Replica   (3) mongo1:27017[M] | mongo2:27018[R1] | mongo3:27019[R2]     
-###### 6.MongoDB Pool      (1) mongo1-setup
+### DB                    ... config-replica.js
+5.MongoDB Replica   (3) mongo1:27017[M] | mongo2:27018[R1] | mongo3:27019[R2]     
+6.MongoDB Pool      (1) mongo1-setup
 ---------------------------------------------------------------------------
- *Topic & Transaction   .../utils/*  
-###### 7.CONNECT               8083
-###### 8.CONTROL               9021
-###### 9.REST PROXY        (1) restproxy:8082
+### Topic & Transaction   .../utils/*  
+7.CONNECT               8083
+8.CONTROL               9021
+9.REST PROXY        (1) restproxy:8082
 ---------------------------------------------------------------------------
- *OPTION
-###### 10.KAFKA -- UI      (4) topics:8000  
-###### 11.KAFAK TOPIC CREATE
-###### 12.NETWORKS         (2) localnet:bridge
-###### 13.VOLUMES
+### OPTION
+10.KAFKA -- UI      (4) topics:8000  
+11.KAFAK TOPIC CREATE
+12.NETWORKS         (2) localnet:bridge
+13.VOLUMES
 ---------------------------------------------------------------------------
-# [Connector/Topic] REGISTER & GENERATOR
-###### [Connector]   CONNECT) cx, simplesource.json, simplesink.json
-###### [Topic] REST PROXY) kafkaRest.py, kafkaRestConsum1.py, kafkaRestConsum2.py,kafkaRestConsum3.py, kafkaRestInfo.py 
-###### [Topic] KSQL) ksqlStreamCreate.py, ksqlStreamProd.py, ksqlSreamSub.py
-###### [Topic] kafkawrite.py, kafkaread.py  (kafkaread.py ... insert Topic offect to MONGO DB)
+# /Utils File Description [Connector/Topic] REGISTER & GENERATOR
+[Connector] CONNECT) 
+```
+cx, simplesource.json, simplesink.json
+```
+[Topic] REST PROXY)  
+```
+kafkaRest.py, kafkaRestConsum1.py, kafkaRestConsum2.py,kafkaRestConsum3.py, kafkaRestInfo.py
+```
+[Topic] KSQL) 
+```
+ksqlStreamCreate.py, ksqlStreamProd.py, ksqlSreamSub.py
+```
+[Topic] 
+```
+kafkawrite.py, kafkaread.py  (kafkaread.py ... insert Topic offect to MONGO DB)
+```
 ---------------------------------------------------------------------------
 # Ref. 
 - https://github.com/confluentinc/cp-demo/blob/7.4.0-post/docker-compose.yml
