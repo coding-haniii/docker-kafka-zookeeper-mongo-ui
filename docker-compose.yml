@@ -12,14 +12,14 @@
 #############################################################################
 #
 # *NODE
-# 1.ZOOKEEPER         (3) zookeeper1:2181 | zookeeper2:2182 | zookeeper3:2183
-# 2.KAFKA             (3) broker:9092  |  broker1:9091   | borker2:9092   
+# 1.ZOOKEEPER         (3) zoo1:2181 | zoo2:2182 
+# 2.KAFKA             (3) broker1:29091  |  broker2:29092     
 # 3.SCHEMA REGISTRY   (1) schemaregistry:8081
 # 4.KSQL              (2) ksqlserver:8088, ksqlcli  
 #---------------------------------------------------------------------------
 # *DB 
-# 5.MongoDB Replica   (3) mongo1:27015[M] | mongo2:27016[R1] | mongo3:27017[R2] | mongo4:27018[M] | mongo5:27019[R1]    
-# 6.MongoDB Pool      (3) mongo-setup
+# 5.MongoDB Replica   (3) mongo1:27017[M] | mongo2:27018[R1] | mongo3:27019[R2]  
+# 6.MongoDB Pool      (3) mongo1-setup
 #---------------------------------------------------------------------------
 # *TRANSACTION
 # 7.CONNECT               8083
@@ -54,111 +54,50 @@ services:
   #######################
   ### 1.ZOOKEEPER
   #######################
-  zookeeper1:
-    image: confluentinc/cp-zookeeper:5.3.0
-    hostname: zookeeper1
-    container_name: zookeeper1
-    ports:
-      - "2181:2181"
-    volumes:
-      - zoo1:/data
-      - zoo1:/datalog
-      - zoo1:/logs  
+  zoo1:
+    image: confluentinc/cp-zookeeper:7.2.2
+    hostname: zoo1
+    container_name: zoo1
     networks:
       - localnet
-    #networks:     
-    #  broker-bridge:
-    #    ipv4_address: 172.40.0.81      --You can initialize ip
     environment:
-      ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-    healthcheck:
-      test: echo stat | nc localhost 2181
-      interval: 10s
-      timeout: 10s
-      retries: 3
-      
-  zookeeper2:
-    image: confluentinc/cp-zookeeper:5.3.0
-    hostname: zookeeper2
-    container_name: zookeeper2
-    ports:
-      - "2182:2182"
-    volumes:
-      - zoo2:/data
-      - zoo2:/datalog
-      - zoo2:/logs 
+  zoo2:
+    image: confluentinc/cp-zookeeper:7.2.2
+    hostname: zoo2
+    container_name: zoo2
     networks:
       - localnet
     environment:
-      ZOOKEEPER_SERVER_ID: 2
       ZOOKEEPER_CLIENT_PORT: 2182
       ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-    healthcheck:
-      test: echo stat | nc localhost 2182
-      interval: 10s
-      timeout: 10s
-      retries: 3
 
-  zookeeper3:
-    image: confluentinc/cp-zookeeper:5.3.0
-    hostname: zookeeper3
-    container_name: zookeeper3
-    ports:
-      - "2183:2183"
-    volumes:
-      - zoo3:/data
-      - zoo3:/datalog
-      - zoo3:/logs  
-    networks:
-      - localnet
-    environment:
-      ZOOKEEPER_SERVER_ID: 3
-      ZOOKEEPER_CLIENT_PORT: 2183
-      ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-    healthcheck:
-      test: echo stat | nc localhost 2183
-      interval: 10s
-      timeout: 10s
-      retries: 3
-
-  #######################
-  ### 2.KAFKA
-  #######################
   broker1:
     image: confluentinc/cp-kafka:7.2.2
     hostname: broker1
     container_name: broker1
     ports:
-      - "29091:9091"
-    healthcheck:
-      interval: 10s
-      retries: 25
+      #- "19091"
+      - "29091:9092"
+      - "9991"
     depends_on:
-      - zookeeper1
-      - zookeeper2
-      - zookeeper3
+      - zoo1
     networks:
       - localnet
     environment:
-      PORT: 9091
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper1:2181,zookeeper2:2182,zookeeper3:2183
-      KAFKA_LISTENERS: INSIDE://broker1:9092,OUTSIDE://localhost:29091
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://broker1:9092,OUTSIDE://localhost:29091
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
+      KAFKA_LISTENERS: LISTENER_1://broker1:29091,LISTENER_2://broker1:9092
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_1://broker1:29091,LISTENER_2://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_1:PLAINTEXT,LISTENER_2:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CONFLUENT_SUPPORT_CUSTOMER_ID: "anonymous"
       KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=broker1 -Dcom.sun.management.jmxremote.rmi.port=9991"
+      JMX_PORT: 9991
 
   broker2:
     image: confluentinc/cp-kafka:7.2.2
@@ -166,73 +105,21 @@ services:
     container_name: broker2
     ports:
       - "29092:9092"
-    healthcheck:
-      interval: 10s
-      retries: 25
     depends_on:
-      - broker1
+      - zoo2
     networks:
       - localnet
     environment:
-      PORT: 9092
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper1:2181,zookeeper2:2182,zookeeper3:2183
-      KAFKA_LISTENERS: INSIDE://broker2:9092,OUTSIDE://localhost:29092
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://broker2:9092,OUTSIDE://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zoo2:2182"
+      KAFKA_LISTENERS: LISTENER_1://broker2:29092,LISTENER_2://broker2:9092
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_1://broker2:29092,LISTENER_2://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_1:PLAINTEXT,LISTENER_2:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CONFLUENT_SUPPORT_CUSTOMER_ID: "anonymous"
       KAFKA_DELETE_TOPIC_ENABLE: "true"
-
-  broker:
-    image: confluentinc/cp-kafka:7.2.2
-    hostname: broker
-    container_name: broker
-    ports:
-      - "29093:9092"
-    healthcheck:
-      interval: 10s
-      retries: 25
-    depends_on:
-      - broker2
-    networks:
-      - localnet
-    environment:
-      PORT: 9092
-      KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper1:2181,zookeeper2:2182,zookeeper3:2183
-      KAFKA_LISTENERS: INSIDE://broker:9092,OUTSIDE://localhost:29093
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://broker:9092,OUTSIDE://localhost:29093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      CONFLUENT_SUPPORT_CUSTOMER_ID: "anonymous"
-      KAFKA_DELETE_TOPIC_ENABLE: "true"
-    
-  #######################
-  ### 3.SCHEMA REGISTRY
-  #######################     
-  schemaregistry:
-    image: confluentinc/cp-schema-registry:7.2.2
-    hostname: schemaregistry
-    container_name: schemaregistry
-    ports:
-      - "8081:8081"
-    depends_on:
-      - broker1
-      - broker2 
-      - broker
-      - zookeeper1
-    networks:
-      - localnet
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schemaregistry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker1:9092,broker2:9092,broker:9092'
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "http://zookeeper1:2181"
-      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
 
   #######################
   ### 4.KSQL
@@ -244,9 +131,8 @@ services:
     depends_on:
       - broker1
       - broker2 
-      - broker
       - connect
-      - schemaregistry
+      - schema-registry
     ports:
       - "8088:8088"
     networks:
@@ -254,13 +140,13 @@ services:
     environment:
       KSQL_CONFIG_DIR: "/etc/ksql"
       KSQL_LOG4J_OPTS: "-Dlog4j.configuration=file:/etc/ksql/log4j-rolling.properties"
-      KSQL_BOOTSTRAP_SERVERS: 'broker1:29091,broker2:29092,broker:9092'
+      KSQL_BOOTSTRAP_SERVERS: 'broker1:29091,broker2:29092'
       KSQL_HOST_NAME: ksqlserver
       KSQL_APPLICATION_ID: "cp-all-in-one"
       KSQL_LISTENERS: "http://0.0.0.0:8088"
       KSQL_KSQL_SERVICE_ID: ksql_standalone_1
       KSQL_CACHE_MAX_BYTES_BUFFERING: 0
-      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schemaregistry:8081"
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema_registry:8081"
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
@@ -272,48 +158,125 @@ services:
     depends_on:
       - broker1
       - broker2
-      - broker
       - ksqlserver
     entrypoint: /bin/sh
     tty: true
+    
+  connect:
+    build:
+      context: .
+      dockerfile: connect.Dockerfile
+    ports:
+      - "35000:35000"      
+      - "8083:8083"
+    hostname: connect
+    container_name: connect
+    depends_on:
+      - broker1
+      - broker2
+      - zoo1
+    networks:
+      - localnet
+    environment:
+      KAFKA_JMX_PORT: 35000
+      KAFKA_JMX_HOSTNAME: localhost
+      CONNECT_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: connect-cluster-group
+      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
+      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_ZOOKEEPER_CONNECT: "zoo1:2181"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+      CONNECT_CONNECTIONS_MAX_IDLE_MS: 180000
+      CONNECT_METADATA_MAX_AGE_MS: 180000
+      CONNECT_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
 
-  #######################
-  ### 5.MongoDB Replica
-  #######################
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.2.2
+    ports:
+      - "8082:8082"   
+    depends_on:
+      - zoo1
+      - broker1
+      - broker2
+      - schema-registry
+    hostname: rest-proxy
+    container_name: rest-proxy
+    networks:
+      - localnet
+    environment:
+      PORT: 8082
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema_registry:8081"
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.2.2
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker1
+      - broker2
+      - zoo1
+      - zoo2
+    networks:
+      - localnet
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zoo1:2181"
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+
   mongo1:
-    image: "mongodb-kafka-base-mongod:1.0" #"mongo:4.0-xenial"
+    image: "mongo:4.0-xenial"
+    container_name: mongo1
     build:
       context: .
       dockerfile: mongo.Dockerfile
-    container_name: mongo1
     command: --replSet rs0 --oplogSize 128
-    depends_on:
-      - zookeeper1
-      - zookeeper2
-      - zookeeper3
-      - broker
-      - connect
-    volumes:
-      - /home/ec2-user/kafka-logs/mongod1:/data/db
-      #- ./data/db/replica/mongo3:/data/db
-      #- ./mongodb.key:/etc/mongodb.key
     networks:
       - localnet
     ports:
       - "27017:27017"
     restart: always
-    #environment:
-    #  MONGO_INITDB_ROOT_USERNAME: root
-    #  MONGO_INITDB_ROOT_PASSWORD: root!
-    #  MONGO_INITDB_DATABASE: databaseName
-    #restart: no
+  mongo2:
+    image: "mongo:4.0-xenial"
+    container_name: mongo2
+    build:
+      context: .
+      dockerfile: mongo.Dockerfile
+    command: --replSet rs0 --oplogSize 128
+    networks:
+      - localnet
+    ports:
+      - "27018:27017"
+    restart: always
+  mongo3:
+    image: "mongo:4.0-xenial"
+    container_name: mongo3
+    build:
+      context: .
+      dockerfile: mongo.Dockerfile
+    command: --replSet rs0 --oplogSize 128
+    networks:
+      - localnet
+    ports:
+      - "27019:27017"
+    restart: always
 
-  #######################
-  ### 6.MongoDB Pool
-  #######################
-  mongo-setup:
+
+  mongo1-setup:
     image: "mongodb-kafka-base-setup-mongod:1.0"
-    container_name: mongo-setup
+    container_name: mongo1-setup
     build:
       context: .
       dockerfile: mongo.Dockerfile
@@ -321,86 +284,14 @@ services:
       - mongo1
     networks:
       - localnet
-    #volumes:
-    #  - ./scripts:/scripts
-    #entrypoint: [ "/scripts/setup_init.sh" ]      
     entrypoint:
       [
         "bash",
         "-c",
         "sleep 10 && mongosh --host mongo1:27017 config-replica.js && sleep 10",
       ]
-    restart: "always"
+    restart: "no"
 
-  #######################
-  ### 7.CONNECT
-  #######################  
-  connect:
-    image: confluentinc/kafka-connect-datagen:latest
-    build:
-      context: .
-      dockerfile: connect.Dockerfile
-    ports:
-      - "8083:8083"
-    healthcheck:
-      interval: 10s
-      retries: 25
-    hostname: connect
-    container_name: connect
-    depends_on:
-      - zookeeper1
-      - zookeeper2
-      - zookeeper3
-      - broker1
-      - broker2 
-      - broker
-      - schemaregistry
-    networks:
-      - localnet
-    environment:
-      #KAFKA_JMX_PORT: 8083
-      #KAFKA_JMX_HOSTNAME: localhost
-      CONNECT_BOOTSTRAP_SERVERS: "broker1:9092,broker2:9092,broker:9092"
-      CONNECT_REST_ADVERTISED_HOST_NAME: connect
-      CONNECT_REST_PORT: 8083
-
-      CONNECT_GROUP_ID: cluster-group
-      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
-      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_TOPIC: connect-status
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
-            
-      
-      CONNECT_ZOOKEEPER_CONNECT: "zookeeper1:2181"
-      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
-      CONNECT_CONNECTIONS_MAX_IDLE_MS: 180000
-      CONNECT_METADATA_MAX_AGE_MS: 180000
-      CONNECT_AUTO_CREATE_TOPICS_ENABLE: "true"
-      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      
-      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
-      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR,com.mongodb.kafka=DEBUG"
-      CONNECT_PLUGIN_PATH: /usr/share/confluent-hub-components
-      
-      CONNECT_KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
-      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: 'http://schemaregistry:8081'
-      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
-      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: 'http://schemaregistry:8081'
-      
-      # Assumes image is based on confluentinc/kafka-connect-datagen:latest which is pulling 5.3.0 Connect image
-      CLASSPATH: /usr/share/java/monitoring-interceptors/monitoring-interceptors-5.3.0.jar
-      CONNECT_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
-      CONNECT_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"      
-      
-      
-    command: "bash -c 'if [ ! -d /usr/share/confluent-hub-components/confluentinc-kafka-connect-datagen ]; then echo \"WARNING: Did not find directory for kafka-connect-datagen (did you remember to run: docker-compose up -d --build ?)\"; fi ; /etc/confluent/docker/run'"
-    volumes:
-      - ../build/confluent/kafka-connect-mongodb:/usr/share/confluent-hub-components/kafka-connect-mongodb
-      
 
   #######################
   ### 8.CONTROL
@@ -410,11 +301,10 @@ services:
     hostname: control-center
     container_name: control-center
     depends_on:
-      - zookeeper1
+      - zoo1
       - broker1
       - broker2 
-      - broker
-      - schemaregistry
+      - schema-registry
       - connect
       - ksqlserver
     ports:
@@ -422,120 +312,46 @@ services:
     networks:
       - localnet
     environment:
-      CONTROL_CENTER_BOOTSTRAP_SERVERS: "broker1:9092,broker2:9092,broker:9092"
-      CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper1:2181'
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zoo1:2181'
       CONTROL_CENTER_CONNECT_CLUSTER: 'connect:8083'
       CONTROL_CENTER_KSQL_URL: "http://ksqlserver:8088"
-      CONTROL_CENTER_KSQL_ADVERTISED_URL: "http://localhost:8088"
-      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schemaregistry:8081"
+      CONTROL_CENTER_KSQL_ADVERTISED_URL: "http://0.0.0.0:8088"
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema_registry:8081"
       CONTROL_CENTER_REPLICATION_FACTOR: 1
       CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
       CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
       
       CONFLUENT_METRICS_TOPIC_REPLICATION: 1       
-      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "broker1:9092,broker2:9092,broker:9092"
-      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: 'zookeeper1:2181'
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: 'zoo1:2181'
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
       PORT: 9021
       
-
-  #######################
-  ### 9.REST PROXY
-  #######################
-  restproxy:
-    image: confluentinc/cp-kafka-rest:7.2.2
-    depends_on:
-      - broker1  
-      - broker2 
-      - broker
-      - schemaregistry
-    hostname: restproxy
-    container_name: restproxy
-    ports:
-      - "8082:8082"
-    networks:
-      - localnet
-    environment:
-      PORT: 8082
-      KAFKA_REST_HOST_NAME: restproxy
-      KAFKA_REST_BOOTSTRAP_SERVERS: "broker1:9092,broker2:9092,broker:9092"
-      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
-      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schemaregistry:8081"
-      
   #######################
   ### 10.KAFKA -- UI
   #######################
-  kafka-topics-ui:
+  kafka-ui-topics:
     image: landoop/kafka-topics-ui:0.9.4
-    hostname: kafka-topics-ui
+    hostname: kafka-ui-topics
     ports:
       - "8000:8000"
     networks:
       - localnet
     environment:
-      KAFKA_REST_PROXY_URL: "http://restproxy:8082/"
-      PROXY: "true"   
+      KAFKA_REST_PROXY_URL: "http://rest-proxy:8082/"
+      PROXY: "true"
     depends_on:
-      - zookeeper1
-      - zookeeper2
-      - zookeeper3
+      - zoo1
+      - zoo2
       - broker1
       - broker2
-      - broker
-      - schemaregistry
-      - restproxy
-      - connect
+      - schema-registry
+      - rest-proxy
 
-  #######################
-  ### 11.KAFAK TOPIC CREATE
-  #######################
-  init-kafka:
-    image: confluentinc/cp-kafka:6.1.1
-    depends_on:
-      - broker1
-      - broker2
-      - broker
-      - schemaregistry
-      - restproxy
-    entrypoint: [ '/bin/sh', '-c' ]
-    command: |
-      "
-      # blocks until kafka is reachable
-      sudo docker-compose exec broker kafka-topics --bootstrap-server broker:2092 --list
 
-      echo -e 'Creating kafka topics'
-      sudo docker-compose exec broker kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic my-topic-1 --replication-factor 1 --partitions 1
-      sudo docker-compose exec broker kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic my-topic-2 --replication-factor 1 --partitions 1
-
-      echo -e 'Successfully created the following topics:'
-      sudo docker-compose exec broker kafka-topics --bootstrap-server broker:9092 --list
-      "
-
-  #######################
-  ### 12.NETWORKS   
-  #######################
 networks:
   localnet:
     driver: bridge
-    attachable: true
-    #external: true
-    ipam:
-      config:
-        - subnet: 172.40.0.0/24
-          #IPAddress: "172.40.0.2"
-          #gateway: 172.40.0.1
-
-  #######################
-  ### 13.VOLUMES   /home/ec2-user/kafka-logs
-  #######################
-volumes:
-  mongod1:
-  mongod2:
-  mongod3:
-  zoo1:
-  zoo2:
-  zoo3:
-  kafka1:
-  kafka2:
-  kafka3:
+    #attachable: true
