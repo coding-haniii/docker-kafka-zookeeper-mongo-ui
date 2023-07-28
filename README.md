@@ -33,8 +33,8 @@ Multi kafka and zookeeper topics clustering to mongodb
 - 12.NETWORKS         (2) localnet:bridge
 - 13.VOLUMES
 ---------------------------------------------------------------------------
-### [Connector/Topic] REGISTER & GENERATOR
-/utils file description 
+### [Connector/Topic] REGISTER & GENERATOR ... /utils file description 
+
 [Connector] CONNECT) 
 ```
 cx, simplesource.json, simplesink.json
