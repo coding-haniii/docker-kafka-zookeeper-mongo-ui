@@ -12,14 +12,14 @@
 #############################################################################
 #
 # *NODE
-# 1.ZOOKEEPER         (3) zoo1:2181 | zoo2:2182 
-# 2.KAFKA             (3) broker1:29091  |  broker2:29092     
+# 1.ZOOKEEPER         (2) zoo1:2181 | zoo2:2182 
+# 2.KAFKA             (2) broker1:29091  |  broker2:29092     
 # 3.SCHEMA REGISTRY   (1) schemaregistry:8081
 # 4.KSQL              (2) ksqlserver:8088, ksqlcli  
 #---------------------------------------------------------------------------
 # *DB 
 # 5.MongoDB Replica   (3) mongo1:27017[M] | mongo2:27018[R1] | mongo3:27019[R2]  
-# 6.MongoDB Pool      (3) mongo1-setup
+# 6.MongoDB Config    (1) mongo1-setup
 #---------------------------------------------------------------------------
 # *TRANSACTION
 # 7.CONNECT               8083
@@ -73,6 +73,9 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2182
       ZOOKEEPER_TICK_TIME: 2000
 
+  #######################
+  ### 1.KAFKA
+  #######################
   broker1:
     image: confluentinc/cp-kafka:7.2.2
     hostname: broker1
@@ -122,6 +125,26 @@ services:
       KAFKA_DELETE_TOPIC_ENABLE: "true"
 
   #######################
+  ### 3.SCHEMA REGISTRY
+  ####################### 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.2.2
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker1
+      - broker2
+      - zoo1
+      - zoo2
+    networks:
+      - localnet
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zoo1:2181"
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      
+  #######################
   ### 4.KSQL
   ####################### 
   ksqlserver:
@@ -161,81 +184,11 @@ services:
       - ksqlserver
     entrypoint: /bin/sh
     tty: true
-    
-  connect:
-    build:
-      context: .
-      dockerfile: connect.Dockerfile
-    ports:
-      - "35000:35000"      
-      - "8083:8083"
-    hostname: connect
-    container_name: connect
-    depends_on:
-      - broker1
-      - broker2
-      - zoo1
-    networks:
-      - localnet
-    environment:
-      KAFKA_JMX_PORT: 35000
-      KAFKA_JMX_HOSTNAME: localhost
-      CONNECT_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
-      CONNECT_REST_ADVERTISED_HOST_NAME: connect
-      CONNECT_REST_PORT: 8083
-      CONNECT_GROUP_ID: connect-cluster-group
-      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
-      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_ZOOKEEPER_CONNECT: "zoo1:2181"
-      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
-      CONNECT_CONNECTIONS_MAX_IDLE_MS: 180000
-      CONNECT_METADATA_MAX_AGE_MS: 180000
-      CONNECT_AUTO_CREATE_TOPICS_ENABLE: "true"
-      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
 
-  rest-proxy:
-    image: confluentinc/cp-kafka-rest:7.2.2
-    ports:
-      - "8082:8082"   
-    depends_on:
-      - zoo1
-      - broker1
-      - broker2
-      - schema-registry
-    hostname: rest-proxy
-    container_name: rest-proxy
-    networks:
-      - localnet
-    environment:
-      PORT: 8082
-      KAFKA_REST_HOST_NAME: rest-proxy
-      KAFKA_REST_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
-      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
-      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema_registry:8081"
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.2.2
-    hostname: schema-registry
-    container_name: schema-registry
-    depends_on:
-      - broker1
-      - broker2
-      - zoo1
-      - zoo2
-    networks:
-      - localnet
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zoo1:2181"
-      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
-
+  #######################
+  ### 5.MongoDB Replica  
+  ####################### 
   mongo1:
     image: "mongo:4.0-xenial"
     container_name: mongo1
@@ -273,7 +226,9 @@ services:
       - "27019:27017"
     restart: always
 
-
+  #######################
+  ### 6.MongoDB Config
+  ####################### 
   mongo1-setup:
     image: "mongodb-kafka-base-setup-mongod:1.0"
     container_name: mongo1-setup
@@ -292,6 +247,46 @@ services:
       ]
     restart: "no"
 
+
+  #######################
+  ### 7.CONNECT
+  ####################### 
+  connect:
+    build:
+      context: .
+      dockerfile: connect.Dockerfile
+    ports:
+      - "35000:35000"      
+      - "8083:8083"
+    hostname: connect
+    container_name: connect
+    depends_on:
+      - broker1
+      - broker2
+      - zoo1
+    networks:
+      - localnet
+    environment:
+      KAFKA_JMX_PORT: 35000
+      KAFKA_JMX_HOSTNAME: localhost
+      CONNECT_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: connect-cluster-group
+      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
+      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_ZOOKEEPER_CONNECT: "zoo1:2181"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+      CONNECT_CONNECTIONS_MAX_IDLE_MS: 180000
+      CONNECT_METADATA_MAX_AGE_MS: 180000
+      CONNECT_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
 
   #######################
   ### 8.CONTROL
@@ -328,6 +323,30 @@ services:
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
       PORT: 9021
+ 
+      
+  #######################
+  ### 9.REST PROXY
+  ####################### 
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.2.2
+    ports:
+      - "8082:8082"   
+    depends_on:
+      - zoo1
+      - broker1
+      - broker2
+      - schema-registry
+    hostname: rest-proxy
+    container_name: rest-proxy
+    networks:
+      - localnet
+    environment:
+      PORT: 8082
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: "broker1:29091,broker2:29092"
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema_registry:8081"
       
   #######################
   ### 10.KAFKA -- UI
@@ -355,3 +374,7 @@ networks:
   localnet:
     driver: bridge
     #attachable: true
+
+volumes:
+  mongolog:
+  kafkalog:
