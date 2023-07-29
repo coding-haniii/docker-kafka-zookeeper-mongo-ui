@@ -7,12 +7,9 @@ Multi kafka and zookeeper topics clustering to mongodb
  - @title.  Multi kafka and zookeeper topic clustering to mongodb
  - @keywords.  kafka / zookeeper / mongodb / docker
 
-// 마트다운 형식
+
 ![캡처](/arch-docker-kafka-zookeeper-mongo-ui.png)
  
-// 태그 형식
-<img src="/arch-docker-kafka-zookeeper-mongo-ui.png"  width="700" height="370">
-
 # Summary Docker containors and ports
 ### NODE
 
