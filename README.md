@@ -1,6 +1,6 @@
 # docker-kafka-zookeeper-mongo-ui
 Multi kafka and zookeeper topics clustering to mongodb
-#############################################################################
+----------------------------------------------------------------------------
  - @name.   docker-compose.yml
  - @author. haeun kim
  - @date.   2023-07-14
@@ -40,20 +40,76 @@ Multi kafka and zookeeper topics clustering to mongodb
 
 [Connector] CONNECT) 
 ```
-cx, simplesource.json, simplesink.json
+cx simplesink.js
+cx simplesource.js
 ```
 [Topic] REST PROXY)  
 ```
-kafkaRest.py, kafkaRestConsum1.py, kafkaRestConsum2.py,kafkaRestConsum3.py, kafkaRestInfo.py
+python3 kafkaRest.py
+python3 kafkaRestCustom1.py
+python3 kafkaRestCustom2.py
+python3 kafkaRestCustom3.py
+python3 kafkaRestInfo.py
 ```
 [Topic] KSQL) 
 ```
-ksqlStreamCreate.py, ksqlStreamProd.py, ksqlSreamSub.py
+python3 ksqlStreamCreate.py
+python3 ksqlStreamProd.py
+python3 ksqlStreamSub.py
 ```
 [Topic] 
 ```
-kafkawrite.py, kafkaread.py  (kafkaread.py ... insert Topic offect to MONGO DB)
+python3 kafkawrite.py
+python3 kafkaread.py  (kafkaread.py ... insert Topic offect to MONGO DB)
 ```
+---------------------------------------------------------------------------
+### Kafka command EX. 
+```
+$sudo docker-compose exec broker2 kafka-topics --create --topic testdb1.book --bootstrap-server broker2:29092 --replication-factor 1 --partitions 1
+$sudo docker-compose exec broker2 kafka-topics --describe --topic testdb1.book --bootstrap-server broker2:29092
+
+$sudo docker exec -it broker1 bash
+$kafka-console-producer --topic testdb1.book --broker-list broker:29092
+$kafka-console-consumer --topic testdb1.book --bootstrap-server broker:29092 --from-beginning
+```
+---------------------------------------------------------------------------
+### Mongo container access EX.
+```
+$sudo docker exec -it mongo1 bash
+$status
+$mongosh
+
+> use <DB name>
+> show databases
+> db.createUser({user: "user", pwd: "pwd", roles:["root"]});
+> db.createCollection("person")
+> show collections
+
+> db.person.insert({"nickname":"coding-haniii", "email":"coding-haniii@github.com"})
+> db.person.find()
+```
+---------------------------------------------------------------------------
+### Ksql-Cli container access EX.
+```
+$sudo docker exec -it ksqlcli ksql http://localhost:8088
+$sudo docker run --net=host --interactive --tty confluentinc/cp-ksql-cli:5.3.0 http://localhost:8088
+
+ksql> version
+ksql> show topics;
+ksql> show tables;
+ksql> CREATE STREAM stream01 (id VARCHAR, time VARCHAR, no int) WITH (kafka_topic='my-topic1', value_format='json', partitions=1);
+ksql> select * from stream01;   (consumer)    <--- this must be empty at first time. keep staying on the screen and open another ksql-cli sceen.
+1689846118218 | null | haeun | 2023-07-20 18:40:10 | 1
+1689846123013 | null | haeun | 2023-07-20 18:40:10 | 2
+1689846131426 | null | haeun | 2023-07-20 18:40:10 | 3
+
+
+*** another ksql-cli open
+INSERT INTO stream01 (id, time, no) VALUES ('haniii', '2023-07-20 18:40:10', 1);
+INSERT INTO stream01 (id, time, no) VALUES ('haniii', '2023-07-20 18:40:10', 2);
+INSERT INTO stream01 (id, time, no) VALUES ('haniii', '2023-07-20 18:40:10', 3);
+```
+###### *pip install ksql
 ---------------------------------------------------------------------------
 # Ref. 
 - https://github.com/confluentinc/cp-demo/blob/7.4.0-post/docker-compose.yml
@@ -62,6 +118,7 @@ kafkawrite.py, kafkaread.py  (kafkaread.py ... insert Topic offect to MONGO DB)
 - https://github.com/provectus/kafka-ui
 - https://docs.ksqldb.io/en/latest/reference/processing-log/
 - https://stackoverflow.com/questions/64865361/docker-compose-create-kafka-topics
+- https://yooloo.tistory.com/109  (ksql, Korean)
 
 ###### restart option ->     restart: unless-stopped/always
 ###### KAFKA_CREATE_TOPICS: "Topic1:2:3,Topic2:1:1"  --> Topic1 partition 2, replica 3 
