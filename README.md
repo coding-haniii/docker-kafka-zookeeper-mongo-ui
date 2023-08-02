@@ -110,6 +110,10 @@ INSERT INTO stream01 (id, time, no) VALUES ('haniii', '2023-07-20 18:40:10', 2);
 INSERT INTO stream01 (id, time, no) VALUES ('haniii', '2023-07-20 18:40:10', 3);
 ```
 ###### *pip install ksql
+###### or
+###### git clone https://github.com/bryanyang0528/ksql-python
+###### cd ksql-python
+###### python setup.py install
 ---------------------------------------------------------------------------
 # Ref. 
 - https://github.com/confluentinc/cp-demo/blob/7.4.0-post/docker-compose.yml
